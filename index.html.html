@@ -1227,20 +1227,86 @@ searchInput.addEventListener('input', () => {
 
 // ── TTS ──
 function speak(text, btn) {
+ // ============================================================
+  // 方案1: 优先使用 Google 翻译 TTS（在线，100% 粤语）
+  // ============================================================
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=yue&client=tw-ob`;
+  
+  const audio = new Audio(url);
+  
+  // 播放成功 → 用 Google 粤语
+  audio.play().then(() => {
+    if (btn) btn.classList.add('playing');
+    audio.onended = () => { 
+      if (btn) btn.classList.remove('playing'); 
+    };
+    audio.onerror = () => {
+      // Google TTS 失败 → 降级到系统语音
+      if (btn) btn.classList.remove('playing');
+      fallbackSpeak(text, btn);
+    };
+  }).catch(() => {
+    // 网络问题 → 降级到系统语音
+    fallbackSpeak(text, btn);
+  });
+}
+
+// ============================================================
+// 方案2: 降级方案 - 系统语音（备用）
+// ============================================================
+function fallbackSpeak(text, btn) {
   if (!('speechSynthesis' in window)) {
     showToast('浏览器不支援语音合成，请用 Chrome/Edge');
     return;
   }
+  
   window.speechSynthesis.cancel();
+  
+  // 获取语音列表
+  let voices = speechSynthesis.getVoices();
+  
+  if (voices.length === 0) {
+    speechSynthesis.onvoiceschanged = function() {
+      voices = speechSynthesis.getVoices();
+      doFallbackSpeak(text, btn, voices);
+    };
+  } else {
+    doFallbackSpeak(text, btn, voices);
+  }
+}
+
+function doFallbackSpeak(text, btn, voices) {
+  // 优先找粤语声音
+  let cantoVoice = voices.find(v => 
+    v.lang === 'zh-HK' || 
+    v.lang === 'yue-HK' || 
+    v.lang === 'zh-yue' ||
+    v.lang === 'zh-TW' ||
+    v.lang.startsWith('yue') ||
+    (v.lang.startsWith('zh') && v.lang.includes('HK'))
+  );
+  
+  if (!cantoVoice) {
+    cantoVoice = voices.find(v => v.lang.startsWith('zh'));
+  }
+  
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'zh-HK'; u.rate = 0.85; u.pitch = 1;
-  const voices = speechSynthesis.getVoices();
-  const cv = voices.find(v => v.lang==='zh-HK'||v.lang==='yue-HK'||v.lang==='zh-yue');
-  if (cv) u.voice = cv;
+  u.lang = 'zh-HK';
+  u.rate = 0.8;
+  u.pitch = 1.0;
+  
+  if (cantoVoice) {
+    u.voice = cantoVoice;
+    console.log('✅ 使用系统语音:', cantoVoice.name, cantoVoice.lang);
+  } else {
+    console.warn('⚠️ 未找到粤语语音，使用系统默认');
+  }
+  
   if (btn) btn.classList.add('playing');
-  u.onend = () => { if(btn) btn.classList.remove('playing'); };
-  u.onerror = () => { if(btn) btn.classList.remove('playing'); };
-  speechSynthesis.speak(u);
+  u.onend = () => { if (btn) btn.classList.remove('playing'); };
+  u.onerror = () => { if (btn) btn.classList.remove('playing'); };
+  
+  window.speechSynthesis.speak(u);
 }
 
 $('speakerWord').addEventListener('click', () => { if(currentEntry) speak(currentEntry.w, $('speakerWord')); });
