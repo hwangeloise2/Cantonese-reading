@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>粤拼助手 — 随时随地学粤语发音</title>
+<style>
+  :root {
+    --bg: #faf9f6;
+    --card: #ffffff;
+    --text: #2d2d2d;
+    --muted: #888;
+    --accent: #e8734a;
+    --accent-hover: #d15e35;
+    --border: #e8e5df;
+    --shadow: 0 2px 16px rgba(0,0,0,0.05);
+    --radius: 16px;
+    --jyutping: #2b7a4b;
+    --jyutping-bg: #eafaf1;
+    --red-bg: #fff0f0;
+    --tag-bg: #f5f3ef;
+    --step-active: #fff7e6;
+    --green-bg: #eafaf1;
+    --font: -apple-system, "PingFang HK", "Noto Sans HK", "Microsoft YaHei", sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .container { width: 100%; max-width: 560px; }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header .logo {
+    font-size: 38px;
+    margin-bottom: 4px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 750;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .header .sub {
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Search ── */
+  .search-wrap {
+    position: sticky;
+    top: 16px;
+    z-index: 20;
+    background: var(--bg);
+    padding-bottom: 12px;
+  }
+  .search-box {
+    display: flex;
+    gap: 10px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 6px;
+    box-shadow: var(--shadow);
+  }
+  .search-box input {
+    flex: 1;
+    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    font-size: 17px;
+    font-family: var(--font);
+    outline: none;
+    color: var(--text);
+    min-width: 0;
+  }
+  .search-box input::placeholder { color: #c5c0b8; }
+  .search-box button {
+    padding: 12px 22px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .search-box button:hover { background: var(--accent-hover); }
+  .search-box button:active { transform: scale(0.96); }
+
+  /* ── Category Tags ── */
+  .cat-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .cat-tag {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .cat-tag:hover { border-color: #ccc; color: var(--text); }
+  .cat-tag.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── Suggested Words ── */
+  .suggested {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .suggest-word {
+    padding: 4px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    background: #f0eeea;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .suggest-word:hover { background: #e5e2db; color: #333; }
+
+  /* ── Result Card ── */
+  .result-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    display: none;
+  }
+  .result-card.show { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  .word-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .word-char {
+    font-size: 34px;
+    font-weight: 750;
+    letter-spacing: 3px;
+    line-height: 1.1;
+  }
+  .jyutping-badge {
+    font-size: 17px;
+    color: var(--jyutping);
+    font-weight: 600;
+    background: var(--jyutping-bg);
+    padding: 3px 12px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+  .speaker-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    cursor: pointer;
+    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .speaker-btn:hover { background: #f5f3ef; }
+  .speaker-btn:active { transform: scale(0.88); }
+  .speaker-btn.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .entry-tag {
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--tag-bg);
+    color: #999;
+  }
+
+  .example-block {
+    margin-top: 18px;
+  }
+  .example-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .example-sentence {
+    font-size: 18px;
+    line-height: 1.65;
+    padding: 14px 16px;
+    background: #f9f8f5;
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .example-sentence .ex-text { flex:1; }
+  .example-sentence .speaker-btn {
+    width: 32px; height: 32px;
+    font-size: 15px;
+    margin-top: 1px;
+  }
+
+  /* ── Word List (category browse) ── */
+  .word-list-section {
+    margin-top: 8px;
+  }
+  .word-list-title {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .word-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .word-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .word-card:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .word-card .wc-word { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+  .word-card .wc-jp { font-size: 12px; color: var(--jyutping); margin-top: 2px; }
+  .word-card .wc-en { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* ── Record Section ── */
+  .record-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    display: none;
+  }
+  .record-section.show { display: block; animation: fadeIn 0.3s ease; }
+
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .section-divider span {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .record-btn-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+  .record-btn {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: #e53935;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(229,57,53,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .record-btn:active, .record-btn.recording {
+    transform: scale(1.12);
+    box-shadow: 0 6px 28px rgba(229,57,53,0.5);
+  }
+  .record-btn .mic-icon { font-size: 34px; pointer-events: none; }
+  .record-btn .pulse-ring {
+    position: absolute;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 3px solid rgba(229,57,53,0.4);
+    animation: pulse 1.2s ease-out infinite;
+    display: none;
+    pointer-events: none;
+  }
+  .record-btn.recording .pulse-ring { display: block; }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.45); opacity: 0; }
+  }
+  .record-hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  /* ── Follow Steps ── */
+  .follow-steps { text-align: left; }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    background: #f9f8f5;
+    font-size: 15px;
+    transition: all 0.2s;
+  }
+  .step-item.done { background: var(--green-bg); }
+  .step-item.active {
+    background: var(--step-active);
+    border: 1.5px solid var(--accent);
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .step-item.done .step-num { background: var(--jyutping); color: #fff; }
+  .step-text { flex: 1; }
+  .step-status { font-size: 12px; color: var(--muted); }
+
+  /* ── Sentence Review ── */
+  .sentence-review {
+    font-size: 19px;
+    line-height: 1.8;
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: #f9f8f5;
+    border-radius: 10px;
+    text-align: left;
+    display: none;
+    letter-spacing: 1px;
+  }
+  .sentence-review.show { display: block; }
+  .char-wrong {
+    color: #e53935;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: rgba(229,57,53,0.35);
+  }
+
+  /* ── Score ── */
+  .score-area {
+    margin-top: 24px;
+    display: none;
+  }
+  .score-area.show { display: block; animation: scorePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  @keyframes scorePop {
+    0% { opacity:0; transform:scale(0.7); }
+    100% { opacity:1; transform:scale(1); }
+  }
+
+  .score-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    font-weight: 800;
+    transition: all 0.3s;
+  }
+  .score-circle.great { background: #eafaf1; color: var(--jyutping); border: 3px solid var(--jyutping); }
+  .score-circle.ok { background: #fff7e6; color: var(--accent); border: 3px solid var(--accent); }
+
+  .cat-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 6px;
+  }
+  .cat-wrap canvas { width: 90px; height: 90px; }
+  .cat-comment {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .cat-comment.great { color: var(--jyutping); }
+  .cat-comment.ok { color: var(--accent); }
+
+  .reset-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .reset-btn:hover { background: #f5f3ef; }
+
+  /* ── Celebrate Overlay ── */
+  .celebrate {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+  }
+  .celebrate.show { display: block; animation: celebFade 2.2s ease forwards; }
+  @keyframes celebFade {
+    0% { opacity:0; }
+    15% { opacity:1; }
+    85% { opacity:1; }
+    100% { opacity:0; }
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-family: var(--font);
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Empty / Intro ── */
+  .intro {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .intro .icon { font-size: 52px; margin-bottom: 14px; }
+  .intro h2 { font-size: 18px; font-weight: 600; color: #555; margin-bottom: 6px; }
+  .intro p { font-size: 14px; line-height: 1.7; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 32px 0 16px;
+    font-size: 12px;
+    color: #ccc;
+  }
+  .footer a { color: #ccc; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .word-row { gap: 8px; }
+    .word-char { font-size: 28px; letter-spacing: 2px; }
+    .jyutping-badge { font-size: 15px; }
+    .example-sentence { font-size: 16px; }
+    .word-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    .cat-tags { gap: 6px; }
+    .cat-tag { font-size: 12px; padding: 5px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">📖</div>
+    <h1>粤拼助手</h1>
+    <p class="sub">学粤语，讲地道广东话</p>
+  </div>
+
+  <!-- Sticky Search -->
+  <div class="search-wrap">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="输入粤语词语 / 粤拼 / 英文…" autocomplete="off">
+      <button id="searchBtn">🔍 查询</button>
+    </div>
+    <div class="cat-tags" id="catTags"></div>
+    <div class="suggested" id="suggestedWords"></div>
+  </div>
+
+  <!-- Intro -->
+  <div class="intro" id="intro">
+    <div class="icon">🔍</div>
+    <h2>随时随地学粤语</h2>
+    <p>输入你想学嘅粤语词语<br>查询标准粤拼、地道例句<br>仲可以录音跟读，俾系统帮你评分！</p>
+  </div>
+
+  <!-- Result Card -->
+  <div class="result-card" id="resultCard">
+    <div class="word-row">
+      <span class="word-char" id="wordChar"></span>
+      <span class="jyutping-badge" id="jyutpingDisplay"></span>
+      <button class="speaker-btn" id="speakerWord" title="听标准发音">🔊</button>
+    </div>
+    <div class="entry-meta" id="entryMeta"></div>
+    <div class="example-block">
+      <div class="example-label">📝 地道例句</div>
+      <div class="example-sentence">
+        <span class="ex-text" id="exampleText"></span>
+        <button class="speaker-btn" id="speakerExample" title="听例句发音">🔊</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Word List (category browse) -->
+  <div class="word-list-section" id="wordListSection" style="display:none;">
+    <div class="word-list-title" id="wordListTitle"></div>
+    <div class="word-grid" id="wordGrid"></div>
+  </div>
+
+  <!-- Record Section -->
+  <div class="record-section" id="recordSection">
+    <div class="section-divider"><span>🎤 跟读练习</span></div>
+    <div class="record-btn-wrap">
+      <button class="record-btn" id="recordBtn">
+        <span class="mic-icon">🎙️</span>
+        <span class="pulse-ring"></span>
+      </button>
+    </div>
+    <p class="record-hint" id="recordHint">长按红色按钮录音，松开结束</p>
+
+    <div class="follow-steps">
+      <div class="step-item" id="step1">
+        <span class="step-num">1</span>
+        <span class="step-text">跟读词语：<strong id="step1Word">—</strong></span>
+        <span class="step-status" id="step1Status"></span>
+      </div>
+      <div class="step-item" id="step2">
+        <span class="step-num">2</span>
+        <span class="step-text">跟读句子：<strong id="step2Sentence">—</strong></span>
+        <span class="step-status" id="step2Status"></span>
+      </div>
+    </div>
+
+    <div class="sentence-review" id="sentenceReview"></div>
+
+    <div class="score-area" id="scoreArea">
+      <div class="score-circle" id="scoreCircle">0</div>
+      <div class="cat-wrap">
+        <canvas id="catCanvas" width="180" height="180"></canvas>
+        <span class="cat-comment" id="catComment"></span>
+      </div>
+      <button class="reset-btn" id="resetRecordBtn">🔄 重新跟读</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    粤拼助手 · 随时随地学粤语 · 数据参考粤语审音配词字库、words.hk粵典、CantoDict
+  </div>
+</div>
+
+<div class="celebrate" id="celebrate"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║          COMPREHENSIVE CANTONESE DICTIONARY            ║
+// ║  300+ entries with Jyutping, examples, categories      ║
+// ╚══════════════════════════════════════════════════════════╝
+
+const DICT = [
+  // ────── 问候寒暄 Greetings ──────
+  {w:"你好", j:"nei5 hou2", e:"Hello / Hi", ex:"你好，好耐冇见，最近点样呀？", t:"问候"},
+  {w:"哈啰", j:"haa1 lo3*2", e:"Hello (loanword)", ex:"哈啰！我係新嚟嘅，请多多指教。", t:"问候"},
+  {w:"早晨", j:"zou2 san4", e:"Good morning", ex:"早晨！今日天气好好，一齐去饮茶啦。", t:"问候"},
+  {w:"早唞", j:"zou2 tau2", e:"Good night", ex:"好夜啦，早唞，听日见！", t:"问候"},
+  {w:"午安", j:"ng5 on1", e:"Good afternoon", ex:"午安，食咗饭未呀？", t:"问候"},
+  {w:"晚安", j:"maan5 on1", e:"Good evening", ex:"晚安，希望你有个好梦。", t:"问候"},
+  {w:"拜拜", j:"baai1 baai3", e:"Bye bye", ex:"我走先啦，拜拜！", t:"问候"},
+  {w:"再见", j:"zoi3 gin3", e:"Goodbye (formal)", ex:"再见啦，下次再倾过。", t:"问候"},
+  {w:"好耐冇见", j:"hou2 noi6 mou5 gin3", e:"Long time no see", ex:"好耐冇见！你瘦咗好多喎！", t:"问候"},
+  {w:"你点呀", j:"nei5 dim2 aa3", e:"How are you?", ex:"你点呀？呢排忙唔忙？", t:"问候"},
+  {w:"食咗饭未", j:"sik6 zo2 faan6 mei6", e:"Have you eaten?", ex:"食咗饭未？一齐去食啲嘢？", t:"问候"},
+  {w:"有冇挂住我", j:"jau5 mou5 gwaa3 zyu6 ngo5", e:"Did you miss me?", ex:"去旅行咁耐，有冇挂住我呀？", t:"问候"},
+
+  // ────── 道谢道歉 Thanks & Sorry ──────
+  {w:"多谢", j:"do1 ze6", e:"Thank you", ex:"多谢晒你帮手，真系唔该晒！", t:"礼貌"},
+  {w:"唔该", j:"m4 goi1", e:"Thanks / Excuse me", ex:"唔该，请问地铁站喺边度？", t:"礼貌"},
+  {w:"唔该晒", j:"m4 goi1 saai3", e:"Thank you very much", ex:"唔该晒！你帮咗我好大忙！", t:"礼貌"},
+  {w:"多谢晒", j:"do1 ze6 saai3", e:"Many thanks", ex:"多谢晒你嘅礼物，我好钟意！", t:"礼貌"},
+  {w:"对唔住", j:"deoi3 m4 zyu6", e:"Sorry", ex:"对唔住，我唔小心整跌咗你嘅嘢。", t:"礼貌"},
+  {w:"唔好意思", j:"m4 hou2 ji3 si1", e:"Excuse me / Sorry", ex:"唔好意思，我想问下呢度点去呀？", t:"礼貌"},
+  {w:"sorry", j:"so1 li4", e:"Sorry (loanword)", ex:"Sorry呀，我迟咗少少。", t:"礼貌"},
+  {w:"有心", j:"jau5 sam1", e:"Thank you for caring", ex:"你咁有心嚟探我，真系感动。", t:"礼貌"},
+  {w:"唔使客气", j:"m4 sai2 haak3 hei3", e:"You're welcome", ex:"唔使客气，朋友之间应该互相帮忙㗎。", t:"礼貌"},
+  {w:"唔紧要", j:"m4 gan2 jiu3", e:"It doesn't matter", ex:"唔紧要，下次再约过啦。", t:"礼貌"},
+  {w:"麻烦晒", j:"maa4 faan4 saai3", e:"Sorry for the trouble", ex:"麻烦晒你车我返嚟，真系唔好意思。", t:"礼貌"},
+
+  // ────── 饮食 Food & Drink ──────
+  {w:"食饭", j:"sik6 faan6", e:"Eat rice / Have a meal", ex:"够钟食饭啦，今日去边度食呀？", t:"饮食"},
+  {w:"饮茶", j:"jam2 caa4", e:"Yum cha / Drink tea", ex:"星期六一家人去饮茶，食虾饺烧卖。", t:"饮食"},
+  {w:"食早餐", j:"sik6 zou2 caan1", e:"Eat breakfast", ex:"我每日七点起身食早餐。", t:"饮食"},
+  {w:"食晏", j:"sik6 ngaan3", e:"Have lunch", ex:"今日食晏去茶餐厅好唔好？", t:"饮食"},
+  {w:"食晚饭", j:"sik6 maan5 faan6", e:"Have dinner", ex:"今晚返屋企食晚饭，阿妈煲咗汤。", t:"饮食"},
+  {w:"宵夜", j:"siu1 je6*2", e:"Late night snack", ex:"睇完戏肚饿，不如去食宵夜？", t:"饮食"},
+  {w:"好食", j:"hou2 sik6", e:"Delicious", ex:"呢间餐厅啲点心好好食，下次再来！", t:"饮食"},
+  {w:"好味", j:"hou2 mei6", e:"Tasty", ex:"你煮嘅餸真系好好味！", t:"饮食"},
+  {w:"好饮", j:"hou2 jam2", e:"Tasty (drinks)", ex:"呢杯奶茶好饮过出边好多！", t:"饮食"},
+  {w:"肚饿", j:"tou5 ngo6", e:"Hungry", ex:"放工好肚饿，快啲去食嘢啦。", t:"饮食"},
+  {w:"口渴", j:"hau2 hot3", e:"Thirsty", ex:"好口渴，想饮杯冻柠茶。", t:"饮食"},
+  {w:"埋单", j:"maai4 daan1", e:"Bill please", ex:"唔该埋单！今日我请。", t:"饮食"},
+  {w:"菠萝包", j:"bo1 lo4 baau1", e:"Pineapple bun", ex:"新鲜出炉嘅菠萝包热辣辣，加块牛油仲正！", t:"饮食"},
+  {w:"蛋挞", j:"daan6 taat1", e:"Egg tart", ex:"蛋挞要趁热食先好味㗎！", t:"饮食"},
+  {w:"虾饺", j:"haa1 gaau2", e:"Shrimp dumpling", ex:"饮茶梗系要叫虾饺烧卖啦！", t:"饮食"},
+  {w:"烧卖", j:"siu1 maai6*2", e:"Siu mai", ex:"一笼烧卖四个人分，梗系唔够啦！", t:"饮食"},
+  {w:"叉烧", j:"caa1 siu1", e:"Char siu / BBQ pork", ex:"呢间铺头嘅叉烧半肥瘦，好正！", t:"饮食"},
+  {w:"云吞面", j:"wan4 tan1 min6", e:"Wonton noodles", ex:"一碗正宗细蓉云吞面，汤底鲜甜到不得了。", t:"饮食"},
+  {w:"丝袜奶茶", j:"si1 mat6 naai5 caa4", e:"Silk-stocking milk tea", ex:"港式丝袜奶茶香滑浓郁，一日饮几杯。", t:"饮食"},
+  {w:"冻柠茶", j:"dung3 ning4*2 caa4", e:"Iced lemon tea", ex:"热天梗系要饮冻柠茶啦！", t:"饮食"},
+  {w:"鸳鸯", j:"jyun1 joeng1", e:"Coffee+tea mix", ex:"一杯鸳鸯，又提神又好饮。", t:"饮食"},
+  {w:"煲仔饭", j:"bou1 zai2 faan6", e:"Claypot rice", ex:"冬天食煲仔饭最正，仲有饭焦㖭！", t:"饮食"},
+  {w:"干炒牛河", j:"gon1 caau2 ngau4 ho4*2", e:"Beef chow fun", ex:"大排档嘅干炒牛河最有镬气！", t:"饮食"},
+  {w:"点心", j:"dim2 sam1", e:"Dim sum", ex:"呢间酒楼嘅点心好出名㗎。", t:"饮食"},
+  {w:"饮汤", j:"jam2 tong1", e:"Drink soup", ex:"阿妈话日日都要饮汤先健康㗎。", t:"饮食"},
+  {w:"打边炉", j:"daa2 bin1 lou4", e:"Hot pot", ex:"天气冻，最啱一班朋友打边炉！", t:"饮食"},
+  {w:"大排档", j:"daai6 paai4 dong3", e:"Dai pai dong", ex:"夜晚去大排档食宵夜，好有港味。", t:"饮食"},
+  {w:"茶餐厅", j:"caa4 caan1 teng1", e:"Cha chaan teng", ex:"香港嘅茶餐厅乜都有得食，又快又好味。", t:"饮食"},
+  {w:"饮早茶", j:"jam2 zou2 caa4", e:"Morning yum cha", ex:"星期日去饮早茶系我嘅习惯。", t:"饮食"},
+  {w:"下午茶", j:"haa6 ng5 caa4", e:"Afternoon tea", ex:"三点三，下午茶时间到！", t:"饮食"},
+
+  // ────── 交通 Transport ──────
+  {w:"返工", j:"faan1 gung1", e:"Go to work", ex:"我每日搭地铁返工，车程大概半个钟。", t:"交通"},
+  {w:"放工", j:"fong3 gung1", e:"Get off work", ex:"放工之后一齐去食糖水好唔好？", t:"交通"},
+  {w:"搭车", j:"daap3 ce1", e:"Take a vehicle", ex:"你搭车定系行路返学㗎？", t:"交通"},
+  {w:"巴士", j:"baa1 si6*2", e:"Bus", ex:"搭双层巴士上二层最前边，睇风景好正。", t:"交通"},
+  {w:"地铁", j:"dei6 tit3", e:"MTR / Subway", ex:"香港地铁好方便，几乎去边度都得。", t:"交通"},
+  {w:"的士", j:"dik1 si6*2", e:"Taxi", ex:"赶时间就搭的士啦，唔好等巴士啦。", t:"交通"},
+  {w:"小巴", j:"siu2 baa1", e:"Minibus", ex:"搭小巴要大声嗌「有落」先得㗎！", t:"交通"},
+  {w:"八达通", j:"baat3 daat6 tung1", e:"Octopus card", ex:"嘟一嘟八达通就可以搭车，好方便。", t:"交通"},
+  {w:"开车", j:"hoi1 ce1", e:"Drive a car", ex:"佢啱啱考到牌，而家成日想开车。", t:"交通"},
+  {w:"泊车", j:"paak3 ce1", e:"Park a car", ex:"喺中环泊车好贵㗎！", t:"交通"},
+  {w:"塞车", j:"sak1 ce1", e:"Traffic jam", ex:"放工时间周围都塞车。", t:"交通"},
+  {w:"行路", j:"haang4 lou6", e:"Walk", ex:"好近啫，行路过去五分钟就到。", t:"交通"},
+  {w:"上车", j:"soeng5 ce1", e:"Get on a vehicle", ex:"快啲上车啦，架车就快开！", t:"交通"},
+  {w:"落车", j:"lok6 ce1", e:"Get off a vehicle", ex:"下个站落车㗎啦，准备定。", t:"交通"},
+  {w:"的士站", j:"dik1 si6*2 zaam6", e:"Taxi stand", ex:"出咗商场转左就有的士站㗎啦。", t:"交通"},
+  {w:"地铁站", j:"dei6 tit3 zaam6", e:"MTR station", ex:"地铁站喺前边路口转右。", t:"交通"},
+  {w:"红绿灯", j:"hung4 luk6 dang1", e:"Traffic light", ex:"过马路要睇实红绿灯呀！", t:"交通"},
+  {w:"隧道", j:"seoi6 dou6", e:"Tunnel", ex:"过海一定要经隧道㗎。", t:"交通"},
+  {w:"天星小轮", j:"tin1 sing1 siu2 leon4", e:"Star Ferry", ex:"搭天星小轮过海系最平嘅方法。", t:"交通"},
+  {w:"叮叮", j:"ding1 ding1", e:"Tram (colloquial)", ex:"坐叮叮由西环去铜锣湾，慢慢睇风景。", t:"交通"},
+
+  // ────── 购物 Shopping ──────
+  {w:"买嘢", j:"maai5 je5", e:"Buy things / Shop", ex:"女人街好多嘢买，又平又靓。", t:"购物"},
+  {w:"几多钱", j:"gei2 do1 cin4*2", e:"How much?", ex:"呢件衫几多钱？有冇折扣呀？", t:"购物"},
+  {w:"平", j:"peng4", e:"Cheap", ex:"呢对鞋好平咋，先至五十蚊！", t:"购物"},
+  {w:"贵", j:"gwai3", e:"Expensive", ex:"呢个手袋好贵㗎，成千蚊。", t:"购物"},
+  {w:"找钱", j:"zaau2 cin4*2", e:"Give change", ex:"唔该找钱，我畀咗张五百蚊纸。", t:"购物"},
+  {w:"折扣", j:"zit3 kau3", e:"Discount", ex:"而家买两件有八折㖞！", t:"购物"},
+  {w:"减价", j:"gaam2 gaa3", e:"On sale", ex:"呢件衫减价，好抵买！", t:"购物"},
+  {w:"试身", j:"si3 san1", e:"Try on (clothes)", ex:"你可以入去试身室试下件衫。", t:"购物"},
+  {w:"行街", j:"haang4 gaai1", e:"Go shopping / Stroll", ex:"星期日冇嘢做，出街行下买下嘢。", t:"购物"},
+  {w:"找数", j:"zaau2 sou3", e:"Pay the bill", ex:"今餐我找数，你哋唔使争。", t:"购物"},
+  {w:"现金", j:"jin6 gam1", e:"Cash", ex:"呢度只收现金㗎。", t:"购物"},
+  {w:"信用卡", j:"seon3 jung6 kaat1", e:"Credit card", ex:"碌信用卡定畀现金？", t:"购物"},
+  {w:"支付宝", j:"zi1 fu6 bou2", e:"Alipay", ex:"而家好多地方都可以用支付宝畀钱。", t:"购物"},
+  {w:"收据", j:"sau1 geoi3", e:"Receipt", ex:"唔该畀张收据我。", t:"购物"},
+  {w:"退货", j:"teoi3 fo3", e:"Return goods", ex:"件衫唔啱身，可唔可以退货？", t:"购物"},
+  {w:"包起", j:"baau1 hei2", e:"Wrap up / Gift wrap", ex:"唔该帮我包起佢，送畀人㗎。", t:"购物"},
+
+  // ────── 情绪感受 Emotions ──────
+  {w:"开心", j:"hoi1 sam1", e:"Happy", ex:"见到你咁开心，我都好开心呀！", t:"情绪"},
+  {w:"唔开心", j:"m4 hoi1 sam1", e:"Unhappy", ex:"佢今日好似唔开心，唔知咩事呢？", t:"情绪"},
+  {w:"好攰", j:"hou2 gui6", e:"Very tired", ex:"做咗成日嘢好攰，想快啲返去瞓。", t:"情绪"},
+  {w:"兴奋", j:"hing1 fan5", e:"Excited", ex:"听日去旅行，好兴奋瞓唔着！", t:"情绪"},
+  {w:"紧张", j:"gan2 zoeng1", e:"Nervous", ex:"第一次面试，紧张到心跳加速。", t:"情绪"},
+  {w:"嬲", j:"nau1", e:"Angry", ex:"佢好嬲，唔好同佢讲嘢住。", t:"情绪"},
+  {w:"惊", j:"geng1", e:"Scared / Afraid", ex:"我一个人喺屋企好惊呀。", t:"情绪"},
+  {w:"担心", j:"daam1 sam1", e:"Worried", ex:"你咁夜都未返，我好担心你呀。", t:"情绪"},
+  {w:"感动", j:"gam2 dung6", e:"Touched / Moved", ex:"你特登嚟接我机，真系好感动！", t:"情绪"},
+  {w:"失望", j:"sat1 mong6", e:"Disappointed", ex:"等咗咁耐都冇消息，好失望。", t:"情绪"},
+  {w:"妒忌", j:"dou3 gei6", e:"Jealous", ex:"你去咁多地方旅行，我好妒忌呀！", t:"情绪"},
+  {w:"尴尬", j:"gaam1 gaai3", e:"Embarrassed", ex:"认错人，真系好尴尬。", t:"情绪"},
+  {w:"怀念", j:"waai4 nim6", e:"Miss / Nostalgic", ex:"好怀念以前一齐读书嘅日子。", t:"情绪"},
+  {w:"后悔", j:"hau6 fui3", e:"Regret", ex:"冇去到个演唱会，而家好后悔。", t:"情绪"},
+  {w:"羡慕", j:"sin6 mou6", e:"Envious", ex:"你咁快就升职，好羡慕你呀！", t:"情绪"},
+
+  // ────── 人物关系 People ──────
+  {w:"朋友", j:"pang4 jau5", e:"Friend", ex:"佢系我最好嘅朋友，识咗十几年。", t:"人物"},
+  {w:"男朋友", j:"naam4 pang4 jau5", e:"Boyfriend", ex:"佢男朋友对佢好好㗎。", t:"人物"},
+  {w:"女朋友", j:"neoi5 pang4 jau5", e:"Girlfriend", ex:"我女朋友煮嘢好好食㗎。", t:"人物"},
+  {w:"老公", j:"lou5 gung1", e:"Husband", ex:"我老公今日放假，喺屋企凑仔。", t:"人物"},
+  {w:"老婆", j:"lou5 po4", e:"Wife", ex:"老婆煮嘅饭永远最好食。", t:"人物"},
+  {w:"阿爸", j:"aa3 baa4", e:"Dad", ex:"阿爸由细到大都好锡我。", t:"人物"},
+  {w:"阿妈", j:"aa3 maa1", e:"Mom", ex:"阿妈成日惊我唔够衫着。", t:"人物"},
+  {w:"阿哥", j:"aa3 go1", e:"Elder brother", ex:"阿哥大我三岁，成日带我去玩。", t:"人物"},
+  {w:"细佬", j:"sai3 lou2", e:"Younger brother", ex:"我细佬今年读紧大学。", t:"人物"},
+  {w:"家姐", j:"gaa1 ze1", e:"Elder sister", ex:"家姐嫁咗去加拿大。", t:"人物"},
+  {w:"细妹", j:"sai3 mui6*2", e:"Younger sister", ex:"细妹唱歌好好听㗎。", t:"人物"},
+  {w:"阿爷", j:"aa3 je4", e:"Grandfather", ex:"阿爷成日讲旧时嘅故仔俾我听。", t:"人物"},
+  {w:"阿嫲", j:"aa3 maa4", e:"Grandmother", ex:"阿嫲煲嘅汤最够火候。", t:"人物"},
+  {w:"仔女", j:"zai2 neoi5*2", e:"Children", ex:"佢有两个仔女，都好乖。", t:"人物"},
+  {w:"同事", j:"tung4 si6", e:"Colleague", ex:"我啲同事都好好人，成日一齐食晏。", t:"人物"},
+  {w:"老板", j:"lou5 baan2", e:"Boss", ex:"老板今日心情好，请大家食下午茶。", t:"人物"},
+  {w:"靓仔", j:"leng3 zai2", e:"Handsome guy", ex:"呢个靓仔真系好生性，读书又叻。", t:"人物"},
+  {w:"靓女", j:"leng3 neoi5*2", e:"Pretty girl", ex:"个个都话佢系最靓女㗎。", t:"人物"},
+  {w:"熟人", j:"suk6 jan4", e:"Acquaintance", ex:"佢系我嘅熟人，你可以信佢。", t:"人物"},
+  {w:"邻居", j:"leon4 geoi1", e:"Neighbor", ex:"我哋嘅邻居好热心，成日互相帮忙。", t:"人物"},
+
+  // ────── 时间日期 Time ──────
+  {w:"今日", j:"gam1 jat6", e:"Today", ex:"今日系星期五，听日放假！", t:"时间"},
+  {w:"听日", j:"ting1 jat6", e:"Tomorrow", ex:"听日我会早啲起身。", t:"时间"},
+  {w:"琴日", j:"kam4 jat6", e:"Yesterday", ex:"琴日落大雨，冇出街。", t:"时间"},
+  {w:"而家", j:"ji4 gaa1", e:"Now", ex:"而家几点？我赶时间。", t:"时间"},
+  {w:"等阵", j:"dang2 zan6", e:"Wait a moment / Later", ex:"等阵一齐落去楼下食下午茶？", t:"时间"},
+  {w:"成日", j:"seng4 jat6", e:"All day / Always", ex:"佢成日都迟到㗎！", t:"时间"},
+  {w:"有时", j:"jau5 si4", e:"Sometimes", ex:"我有时都会去跑步。", t:"时间"},
+  {w:"头先", j:"tau4 sin1", e:"Just now", ex:"头先有个电话搵你。", t:"时间"},
+  {w:"就快", j:"zau6 faai3", e:"Soon / Almost", ex:"就快新年啦，你要买定新衫㗎。", t:"时间"},
+  {w:"𠵱家", j:"ji4 gaa1", e:"Now (variant)", ex:"𠵱家嘅后生仔好钟意去旅行。", t:"时间"},
+  {w:"朝早", j:"ziu1 zou2", e:"Morning", ex:"朝早起身第一件事系饮杯咖啡。", t:"时间"},
+  {w:"晏昼", j:"ngaan3 zau3", e:"Afternoon", ex:"晏昼出去食饭好唔好？", t:"时间"},
+  {w:"夜晚", j:"je6 maan5", e:"Night / Evening", ex:"夜晚唔好饮咁多咖啡，会瞓唔着。", t:"时间"},
+  {w:"凌晨", j:"ling4 san4", e:"Early morning (12-6am)", ex:"凌晨三点仲未瞓，你唔攰㗎？", t:"时间"},
+  {w:"上昼", j:"soeng6 zau3", e:"Morning / AM", ex:"我上昼开完会就冇嘢做。", t:"时间"},
+  {w:"下昼", j:"haa6 zau3", e:"Afternoon / PM", ex:"下昼三点有场戏想睇。", t:"时间"},
+  {w:"几点", j:"gei2 dim2", e:"What time?", ex:"而家几点呀？", t:"时间"},
+  {w:"几时", j:"gei2 si4", e:"When?", ex:"你几时返嚟香港？", t:"时间"},
+  {w:"好耐", j:"hou2 noi6", e:"A long time", ex:"等咗好耐都未有消息。", t:"时间"},
+  {w:"以前", j:"ji5 cin4", e:"Before / In the past", ex:"以前呢度全部都系农地嚟㗎。", t:"时间"},
+  {w:"而家即刻", j:"ji4 gaa1 zik1 haak1", e:"Right now / Immediately", ex:"你而家即刻过嚟！", t:"时间"},
+
+  // ────── 天气 Weather ──────
+  {w:"天气", j:"tin1 hei3", e:"Weather", ex:"今日天气好好，唔热唔冻。", t:"天气"},
+  {w:"好热", j:"hou2 jit6", e:"Very hot", ex:"夏天好热，唔开冷气真系顶唔顺。", t:"天气"},
+  {w:"好冻", j:"hou2 dung3", e:"Very cold", ex:"今日好冻，记得着多件衫！", t:"天气"},
+  {w:"落雨", j:"lok6 jyu5", e:"Rain", ex:"落雨啦，出街要小心啲，路好跣。", t:"天气"},
+  {w:"打风", j:"daa2 fung1", e:"Typhoon", ex:"听日打风，唔使返工啦！", t:"天气"},
+  {w:"好天", j:"hou2 tin1", e:"Sunny / Good weather", ex:"今日好天，不如去行山？", t:"天气"},
+  {w:"潮湿", j:"ciu4 sap1", e:"Humid", ex:"香港春天好潮湿，墙都出水。", t:"天气"},
+  {w:"干燥", j:"gon1 cou3", e:"Dry", ex:"秋天好干燥，记得揸多啲润肤露。", t:"天气"},
+  {w:"阴天", j:"jam1 tin1", e:"Cloudy", ex:"今日阴天，可能会落雨。", t:"天气"},
+  {w:"凉", j:"loeng4", e:"Cool", ex:"秋天开始凉啦，好舒服。", t:"天气"},
+  {w:"台风", j:"toi4 fung1", e:"Typhoon", ex:"八号台风信号悬挂，大家留喺安全地方。", t:"天气"},
+  {w:"晒太阳", j:"saai3 taai3 joeng4", e:"Bask in the sun", ex:"去沙滩晒太阳最开心！", t:"天气"},
+
+  // ────── 身体 & 健康 Body & Health ──────
+  {w:"头痛", j:"tau4 tung3", e:"Headache", ex:"今日好头痛，可能琴晚瞓得唔好。", t:"健康"},
+  {w:"肚痛", j:"tou5 tung3", e:"Stomach ache", ex:"食错嘢肚痛，要去睇医生。", t:"健康"},
+  {w:"发烧", j:"faat3 siu1", e:"Fever", ex:"你块面咁红，系咪发烧呀？", t:"健康"},
+  {w:"咳", j:"kat1", e:"Cough", ex:"佢咳得好犀利，可能感亲。", t:"健康"},
+  {w:"感冒", j:"gam2 mou6", e:"Cold / Flu", ex:"感冒要饮多啲水同休息。", t:"健康"},
+  {w:"睇医生", j:"tai2 ji1 sang1", e:"See a doctor", ex:"你咳咗成个礼拜，快啲去睇医生啦。", t:"健康"},
+  {w:"药", j:"joek6", e:"Medicine", ex:"记得准时食药先快好㗎。", t:"健康"},
+  {w:"运动", j:"wan6 dung6", e:"Exercise", ex:"日日做运动对身体好。", t:"健康"},
+  {w:"减肥", j:"gaam2 fei4", e:"Lose weight / Diet", ex:"新年食得太多，要减肥啦。", t:"健康"},
+  {w:"健康", j:"gin6 hong1", e:"Healthy", ex:"食多啲菜对身体健康啲。", t:"健康"},
+  {w:"眼瞓", j:"ngaan5 fan3", e:"Sleepy", ex:"好眼瞓，寻晚睇波睇到三点。", t:"健康"},
+  {w:"精神", j:"zing1 san4", e:"Energetic / Spirit", ex:"瞓够八个钟，今日好精神！", t:"健康"},
+
+  // ────── 住屋 Housing ──────
+  {w:"返屋企", j:"faan1 uk1 kei5*2", e:"Go home", ex:"放工啦，返屋企食饭！", t:"住屋"},
+  {w:"屋企", j:"uk1 kei5*2", e:"Home", ex:"我屋企虽然细，但系好舒服。", t:"住屋"},
+  {w:"间房", j:"gaan1 fong4*2", e:"Room", ex:"你间房好整齐㖞！", t:"住屋"},
+  {w:"厨房", j:"cyu4 fong4*2", e:"Kitchen", ex:"厨房有嘢食，自己拎啦。", t:"住屋"},
+  {w:"厕所", j:"ci3 so2", e:"Toilet / Bathroom", ex:"唔该厕所喺边度？", t:"住屋"},
+  {w:"冲凉", j:"cung1 loeng4", e:"Take a shower / Bath", ex:"做完运动返嚟冲凉好舒服。", t:"住屋"},
+  {w:"洗衫", j:"sai2 saam1", e:"Do laundry", ex:"星期日系洗衫嘅日子。", t:"住屋"},
+  {w:"瞓觉", j:"fan3 gaau3", e:"Sleep", ex:"琴晚瞓得唔好，今日好眼瞓。", t:"住屋"},
+  {w:"起身", j:"hei2 san1", e:"Wake up / Get up", ex:"朝朝早七点起身，已成习惯。", t:"住屋"},
+  {w:"锁门", j:"so2 mun4", e:"Lock the door", ex:"出街之前记得锁门！", t:"住屋"},
+  {w:"开灯", j:"hoi1 dang1", e:"Turn on the light", ex:"间房好黑，开灯啦。", t:"住屋"},
+  {w:"闩窗", j:"saan1 coeng1", e:"Close the window", ex:"开紧冷气就闩窗啦。", t:"住屋"},
+  {w:"租金", j:"zou1 gam1", e:"Rent", ex:"香港租金好贵㗎。", t:"住屋"},
+  {w:"业主", j:"jip6 zyu2", e:"Landlord", ex:"业主话下个月加租。", t:"住屋"},
+
+  // ────── 工作学习 Work & Study ──────
+  {w:"返学", j:"faan1 hok6", e:"Go to school", ex:"听朝要早啲起身返学。", t:"学习"},
+  {w:"读书", j:"duk6 syu1", e:"Study / Read", ex:"佢好勤力读书，成日去图书馆温习。", t:"学习"},
+  {w:"考试", j:"haau2 si5", e:"Exam", ex:"听日考试加油呀，你一定得㗎！", t:"学习"},
+  {w:"温书", j:"wan1 syu1", e:"Revise / Study", ex:"考试就到，要开始温书啦。", t:"学习"},
+  {w:"返工", j:"faan1 gung1", e:"Go to work", ex:"我每日搭地铁返工。", t:"学习"},
+  {w:"开会", j:"hoi1 wui6*2", e:"Have a meeting", ex:"下昼三点要开会，唔好迟到。", t:"学习"},
+  {w:"加班", j:"gaa1 baan1", e:"Work overtime", ex:"今个月成日加班，好辛苦。", t:"学习"},
+  {w:"出粮", j:"ceot1 loeng4*2", e:"Get paid / Payday", ex:"听日出粮啦！一齐去食好嘢庆祝。", t:"学习"},
+  {w:"升职", j:"sing1 zik1", e:"Promotion", ex:"恭喜你升职！要请食饭㗎！", t:"学习"},
+  {w:"见工", j:"gin3 gung1", e:"Job interview", ex:"听日去中环见工，好紧张。", t:"学习"},
+  {w:"辞职", j:"ci4 zik1", e:"Resign", ex:"佢递咗信辞职，下个月就走。", t:"学习"},
+  {w:"写字楼", j:"se2 zi6 lau4", e:"Office", ex:"我喺中环嘅写字楼返工。", t:"学习"},
+  {w:"做嘢", j:"zou6 je5", e:"Work / Do things", ex:"佢做嘢好快手，一个人顶三个。", t:"学习"},
+  {w:"功课", j:"gung1 fo3", e:"Homework", ex:"你做晒功课未呀？", t:"学习"},
+  {w:"放暑假", j:"fong3 syu2 gaa3", e:"Summer vacation", ex:"放暑假想去边度玩呀？", t:"学习"},
+
+  // ────── 日常俚语 Colloquial / Slang ──────
+  {w:"搞掂", j:"gaau2 dim6", e:"Get it done / Sorted", ex:"放心啦，呢件事包在我身上，一定搞掂！", t:"俚语"},
+  {w:"求其", j:"kau4 kei4", e:"Casual / Careless", ex:"佢做嘢好求其，唔会认真去做好件事。", t:"俚语"},
+  {w:"是但", j:"si6 daan6", e:"Whatever / Either is fine", ex:"食乜嘢我都无所谓，是但你话事啦。", t:"俚语"},
+  {w:"hea", j:"he3", e:"To slack / Chill", ex:"今日好攰，净系想喺屋企hea下。", t:"俚语"},
+  {w:"吹水", j:"ceoi1 seoi2", e:"Chat / Shoot the breeze", ex:"几个朋友坐埋一齐吹水，倾到唔舍得走。", t:"俚语"},
+  {w:"拍拖", j:"paak3 to1", e:"Date / Go steady", ex:"佢哋拍咗三年拖，感情仲系好好。", t:"俚语"},
+  {w:"冇问题", j:"mou5 man6 tai4", e:"No problem", ex:"冇问题！我帮你搞掂佢！", t:"俚语"},
+  {w:"好犀利", j:"hou2 sai1 lei6", e:"Amazing / Awesome", ex:"你嘅广东话讲得好犀利！", t:"俚语"},
+  {w:"冇所谓", j:"mou5 so2 wai6", e:"Doesn't matter", ex:"去边度食都冇所谓，你话事啦。", t:"俚语"},
+  {w:"激气", j:"gik1 hei3", e:"Frustrating", ex:"部电脑又死机，真系好激气！", t:"俚语"},
+  {w:"肉紧", j:"juk6 gan2", e:"Anxious / Tense", ex:"睇佢比赛我仲肉紧过佢！", t:"俚语"},
+  {w:"老土", j:"lou5 tou2", e:"Old-fashioned / Corny", ex:"呢个笑话好老土，但系我忍唔住笑。", t:"俚语"},
+  {w:"巴闭", j:"baa1 bai3", e:"Arrogant / Bossy", ex:"佢以为自己好巴闭，其实冇人理佢。", t:"俚语"},
+  {w:"黐线", j:"ci1 sin3", e:"Crazy / Nuts", ex:"你黐线㗎？咁危险嘅嘢都做！", t:"俚语"},
+  {w:"八卦", j:"baat3 gwaa3", e:"Nosy / Gossipy", ex:"佢好八卦㗎，咩都想知道。", t:"俚语"},
+  {w:"搞笑", j:"gaau2 siu3", e:"Funny", ex:"佢讲嘢好搞笑，成日整到人笑。", t:"俚语"},
+  {w:"唔掂", j:"m4 dim6", e:"Not OK / Can't make it", ex:"呢个方案唔掂，要再谂过。", t:"俚语"},
+  {w:"麻麻哋", j:"maa4 maa4*2 dei6*2", e:"So-so / Mediocre", ex:"呢间餐厅麻麻哋，下次唔嚟啦。", t:"俚语"},
+  {w:"顶唔顺", j:"ding2 m4 seon6", e:"Can't stand it", ex:"太热啦，我顶唔顺要开冷气！", t:"俚语"},
+  {w:"冇面", j:"mou5 min6*2", e:"Lose face / Embarrassed", ex:"俾人当众话，真系好冇面。", t:"俚语"},
+  {w:"畀面", j:"bei2 min6*2", e:"Show respect / Give face", ex:"今次你畀面出席，我好开心。", t:"俚语"},
+  {w:"晒命", j:"saai3 meng6", e:"Show off", ex:"佢成日晒命话自己几有钱。", t:"俚语"},
+  {w:"万岁", j:"maan6 seoi3", e:"Treat (a meal) / Hooray", ex:"出粮万岁！今日我请！", t:"俚语"},
+  {w:"chok", j:"cok3", e:"Pose / Strike a cool pose", ex:"佢成日对住镜chok样。", t:"俚语"},
+  {w:"chill", j:"ciu1", e:"Chill / Relax (loanword)", ex:"周末喺屋企chill下最舒服。", t:"俚语"},
+
+  // ────── 日常用语 Daily Expressions ──────
+  {w:"知道", j:"zi1 dou3", e:"Know", ex:"我唔知道呢件事会搞到咁大㗎。", t:"日常"},
+  {w:"明白", j:"ming4 baak6", e:"Understand", ex:"你讲多次我就明白晒啦，唔该！", t:"日常"},
+  {w:"帮手", j:"bong1 sau2", e:"Help", ex:"可唔可以帮手拎下呢啲重嘢呀？", t:"日常"},
+  {w:"小心", j:"siu2 sam1", e:"Be careful", ex:"落雨啦，出街要小心啲，路好跣。", t:"日常"},
+  {w:"加油", j:"gaa1 jau4*2", e:"Go for it / Add oil", ex:"听日考试加油呀，你一定得㗎！", t:"日常"},
+  {w:"恭喜", j:"gung1 hei2", e:"Congratulations", ex:"恭喜发财，利是𢭃来！", t:"日常"},
+  {w:"慢慢食", j:"maan6 maan6*2 sik6", e:"Take your time eating", ex:"唔使急，慢慢食，仲有时间。", t:"日常"},
+  {w:"等一阵", j:"dang2 jat1 zan6", e:"Wait a moment", ex:"等一阵，我好快就搞掂。", t:"日常"},
+  {w:"揾到", j:"wan2 dou3*2", e:"Found it", ex:"揾到啦！锁匙喺梳化底。", t:"日常"},
+  {w:"唔见咗", j:"m4 gin3 zo2", e:"Lost / Missing", ex:"我嘅电话唔见咗，有冇人见到？", t:"日常"},
+  {w:"听唔明", j:"teng1 m4 ming4", e:"Don't understand (hearing)", ex:"你讲得太快，我听唔明。", t:"日常"},
+  {w:"睇唔到", j:"tai2 m4 dou3*2", e:"Can't see", ex:"太远啦，我睇唔到。", t:"日常"},
+  {w:"试下", j:"si3 haa5", e:"Give it a try", ex:"你试下呢个新菜式，好好食㗎！", t:"日常"},
+  {w:"几好", j:"gei2 hou2", e:"Quite good", ex:"你嘅广东话讲得几好㖞！", t:"日常"},
+  {w:"冇嘢", j:"mou5 je5", e:"Nothing / It's nothing", ex:"冇嘢，唔使担心。", t:"日常"},
+  {w:"唔知", j:"m4 zi1", e:"Don't know", ex:"我唔知佢去咗边。", t:"日常"},
+  {w:"算啦", j:"syun3 laa1", e:"Forget it / Never mind", ex:"算啦，唔好再谂呢件事。", t:"日常"},
+  {w:"快啲", j:"faai3 di1", e:"Hurry up", ex:"快啲啦，架车就快开啦！", t:"日常"},
+  {w:"等等", j:"dang2 dang2", e:"Wait wait / Hold on", ex:"等等！我仲有嘢想讲。", t:"日常"},
+  {w:"仲有", j:"zung6 jau5", e:"Also / In addition", ex:"仲有冇其他问题？", t:"日常"},
+
+  // ────── 地点 Places ──────
+  {w:"边度", j:"bin1 dou6", e:"Where?", ex:"你而家喺边度呀？我等紧你。", t:"地点"},
+  {w:"呢度", j:"ni1 dou6", e:"Here", ex:"呢度好靓喎，系咩地方嚟㗎？", t:"地点"},
+  {w:"嗰度", j:"go2 dou6", e:"There", ex:"嗰度有间好出名嘅糖水铺。", t:"地点"},
+  {w:"香港", j:"hoeng1 gong2", e:"Hong Kong", ex:"香港系一个好有活力嘅城市。", t:"地点"},
+  {w:"九龙", j:"gau2 lung4", e:"Kowloon", ex:"九龙好多好嘢食㗎。", t:"地点"},
+  {w:"中环", j:"zung1 waan4", e:"Central", ex:"中环系香港嘅金融中心。", t:"地点"},
+  {w:"旺角", j:"wong6 gok3", e:"Mong Kok", ex:"旺角成日都人山人海㗎。", t:"地点"},
+  {w:"铜锣湾", j:"tung4 lo4 waan1", e:"Causeway Bay", ex:"去铜锣湾行街买嘢最开心。", t:"地点"},
+  {w:"尖沙咀", j:"zim1 saa1 zeoi2", e:"Tsim Sha Tsui", ex:"尖沙咀海滨嘅夜景好靓。", t:"地点"},
+  {w:"机场", j:"gei1 coeng4", e:"Airport", ex:"我而家去紧机场，两个钟后起飞。", t:"地点"},
+  {w:"码头", j:"maa5 tau4", e:"Pier / Ferry terminal", ex:"喺码头等船，吹下海风好舒服。", t:"地点"},
+  {w:"公园", j:"gung1 jyun4*2", e:"Park", ex:"星期日去公园野餐好开心。", t:"地点"},
+  {w:"商场", j:"soeng1 coeng4", e:"Shopping mall", ex:"呢个商场乜都有得卖。", t:"地点"},
+  {w:"戏院", j:"hei3 jyun6*2", e:"Cinema", ex:"今晚去戏院睇新上画嗰套戏。", t:"地点"},
+  {w:"医院", j:"ji1 jyun6*2", e:"Hospital", ex:"佢入咗医院，要去探下佢。", t:"地点"},
+  {w:"图书馆", j:"tou4 syu1 gun2", e:"Library", ex:"我成日去图书馆温书㗎。", t:"地点"},
+  {w:"沙滩", j:"saa1 taan1", e:"Beach", ex:"热天去沙滩游水最开心！", t:"地点"},
+  {w:"街市", j:"gaai1 si5", e:"Wet market", ex:"去街市买餸平过超市好多。", t:"地点"},
+  {w:"楼上", j:"lau4 soeng6", e:"Upstairs", ex:"佢住喺我楼上㗎。", t:"地点"},
+  {w:"楼下", j:"lau4 haa6", e:"Downstairs", ex:"楼下有间好方便嘅便利店。", t:"地点"},
+
+  // ────── 数字 & 颜色 Numbers & Colors ──────
+  {w:"一", j:"jat1", e:"One", ex:"一杯奶茶唔该。", t:"数字"},
+  {w:"二", j:"ji6", e:"Two", ex:"我要两张飞。", t:"数字"},
+  {w:"三", j:"saam1", e:"Three", ex:"三个人食饭。", t:"数字"},
+  {w:"十", j:"sap6", e:"Ten", ex:"十蚊一碟肠粉好抵。", t:"数字"},
+  {w:"百", j:"baak3", e:"Hundred", ex:"呢件衫几百蚊㗎。", t:"数字"},
+  {w:"千", j:"cin1", e:"Thousand", ex:"成千蚊一张飞好贵。", t:"数字"},
+  {w:"红色", j:"hung4 sik1", e:"Red", ex:"过年要着红色衫。", t:"颜色"},
+  {w:"蓝色", j:"laam4 sik1", e:"Blue", ex:"天空好蓝色，好靓。", t:"颜色"},
+  {w:"绿色", j:"luk6 sik1", e:"Green", ex:"佢架车系绿色嘅。", t:"颜色"},
+  {w:"黄色", j:"wong4 sik1", e:"Yellow", ex:"黄色嘅太阳花好靓。", t:"颜色"},
+  {w:"白色", j:"baak6 sik1", e:"White", ex:"白色衫好易污糟。", t:"颜色"},
+  {w:"黑色", j:"hak1 sik1", e:"Black", ex:"黑色嘅衫好百搭。", t:"颜色"},
+
+  // ────── 节日 Festivals ──────
+  {w:"新年", j:"san1 nin4", e:"New Year", ex:"新年快乐，恭喜发财！", t:"节日"},
+  {w:"农历新年", j:"nung4 lik6 san1 nin4", e:"Lunar New Year", ex:"农历新年一家团圆最开心。", t:"节日"},
+  {w:"中秋", j:"zung1 cau1", e:"Mid-Autumn Festival", ex:"中秋节食月饼、赏月。", t:"节日"},
+  {w:"圣诞", j:"sing3 daan3", e:"Christmas", ex:"圣诞快乐！你收咗几多份礼物？", t:"节日"},
+  {w:"端午", j:"dyun1 ng5", e:"Dragon Boat Festival", ex:"端午节要食糭、扒龙舟。", t:"节日"},
+  {w:"重阳", j:"cung4 joeng4", e:"Chung Yeung Festival", ex:"重阳节去登高，一家大细去行山。", t:"节日"},
+  {w:"复活节", j:"fuk6 wut6 zit3", e:"Easter", ex:"复活节有长假期，去边度玩好呢？", t:"节日"},
+  {w:"情人节", j:"cing4 jan4 zit3", e:"Valentine's Day", ex:"情人节你送咗咩俾女朋友呀？", t:"节日"},
+  {w:"佛诞", j:"fat6 daan3", e:"Buddha's Birthday", ex:"佛诞假期可以去大屿山拜大佛。", t:"节日"},
+  {w:"万圣节", j:"maan6 sing3 zit3", e:"Halloween", ex:"万圣节去海洋公园玩鬼屋好刺激！", t:"节日"},
+  {w:"冬至", j:"dung1 zi3", e:"Winter Solstice", ex:"冬大过年，冬至要一家人一齐食饭。", t:"节日"},
+
+  // ────── 动物 Animals ──────
+  {w:"猫", j:"maau1", e:"Cat", ex:"佢好钟意猫，养咗三只。", t:"动物"},
+  {w:"狗", j:"gau2", e:"Dog", ex:"呢只狗仔好可爱呀！", t:"动物"},
+  {w:"鱼", j:"jyu4*2", e:"Fish", ex:"蒸鱼要趁热食。", t:"动物"},
+  {w:"鸡", j:"gai1", e:"Chicken", ex:"白切鸡系广东名菜。", t:"动物"},
+  {w:"牛", j:"ngau4", e:"Cow / Beef", ex:"潮州牛丸好弹牙。", t:"动物"},
+  {w:"猪", j:"zyu1", e:"Pig / Pork", ex:"烧猪系喜庆场合必备。", t:"动物"},
+  {w:"马", j:"maa5", e:"Horse", ex:"去跑马地睇跑马好刺激。", t:"动物"},
+  {w:"雀仔", j:"zoek3 zai2", e:"Small bird", ex:"朝早有雀仔喺窗边唱歌。", t:"动物"},
+  {w:"蝴蝶", j:"wu4 dip6*2", e:"Butterfly", ex:"花园好多蝴蝶飞来飞去。", t:"动物"},
+  {w:"乌龟", j:"wu1 gwai1", e:"Turtle", ex:"乌龟行得好慢㗎。", t:"动物"},
+
+  // ────── 更多日常动词 & 形容词 ──────
+  {w:"食", j:"sik6", e:"Eat", ex:"你今日食咗咩早餐？", t:"动词"},
+  {w:"饮", j:"jam2", e:"Drink", ex:"饮多啲水对身体好。", t:"动词"},
+  {w:"瞓", j:"fan3", e:"Sleep", ex:"琴晚瞓得好唔好？", t:"动词"},
+  {w:"行", j:"haang4", e:"Walk / Go", ex:"我哋行快啲啦。", t:"动词"},
+  {w:"跑", j:"paau2", e:"Run", ex:"佢跑得好快㗎！", t:"动词"},
+  {w:"坐", j:"co5", e:"Sit / Take (transport)", ex:"坐低饮杯茶慢慢倾。", t:"动词"},
+  {w:"企", j:"kei5", e:"Stand", ex:"企喺度等咗好耐。", t:"动词"},
+  {w:"睇", j:"tai2", e:"See / Watch / Read", ex:"你睇下呢个，好得意呀！", t:"动词"},
+  {w:"听", j:"teng1", e:"Listen / Hear", ex:"你听下呢首歌，好好听㗎。", t:"动词"},
+  {w:"讲", j:"gong2", e:"Speak / Say", ex:"你讲多次吖，我听唔清楚。", t:"动词"},
+  {w:"写", j:"se2", e:"Write", ex:"你写低个电话俾我。", t:"动词"},
+  {w:"读", j:"duk6", e:"Read aloud", ex:"你读一次呢个词俾我听。", t:"动词"},
+  {w:"做", j:"zou6", e:"Do / Make", ex:"你喺度做紧咩？", t:"动词"},
+  {w:"买", j:"maai5", e:"Buy", ex:"我买咗啲生果返嚟。", t:"动词"},
+  {w:"卖", j:"maai6", e:"Sell", ex:"呢度卖嘅嘢好平㗎。", t:"动词"},
+  {w:"畀", j:"bei2", e:"Give", ex:"畀杯水我得唔得？", t:"动词"},
+  {w:"拎", j:"ling1", e:"Take / Carry", ex:"帮我拎下呢袋嘢吖。", t:"动词"},
+  {w:"钟意", j:"zung1 ji3", e:"Like", ex:"我好钟意食香港嘅云吞面。", t:"动词"},
+  {w:"想", j:"soeng2", e:"Want / Think", ex:"我想去旅行好耐啦。", t:"动词"},
+  {w:"识", j:"sik1", e:"Know (how to)", ex:"你识唔识讲广东话？", t:"动词"},
+  {w:"记得", j:"gei3 dak1", e:"Remember", ex:"记得听日带身份证。", t:"动词"},
+  {w:"忘记", j:"mong4 gei3", e:"Forget", ex:"我忘记咗佢叫咩名。", t:"动词"},
+  {w:"等", j:"dang2", e:"Wait", ex:"等埋我呀！", t:"动词"},
+  {w:"用", j:"jung6", e:"Use", ex:"呢个点样用㗎？", t:"动词"},
+  {w:"打开", j:"daa2 hoi1", e:"Open", ex:"唔该打开个窗。", t:"动词"},
+  {w:"闩", j:"saan1", e:"Close / Shut", ex:"闩门啦，好大风。", t:"动词"},
+
+  // ────── 形容词 Adjs ──────
+  {w:"大", j:"daai6", e:"Big", ex:"呢间房好大㖞！", t:"形容词"},
+  {w:"细", j:"sai3", e:"Small", ex:"对鞋太细，唔啱着。", t:"形容词"},
+  {w:"高", j:"gou1", e:"Tall / High", ex:"佢好高㗎，差唔多一米九。", t:"形容词"},
+  {w:"矮", j:"ngai2", e:"Short (height)", ex:"我太矮啦，睇唔到前面。", t:"形容词"},
+  {w:"肥", j:"fei4", e:"Fat", ex:"食咁多会肥㗎。", t:"形容词"},
+  {w:"瘦", j:"sau3", e:"Thin", ex:"你好瘦呀，要食多啲嘢。", t:"形容词"},
+  {w:"靓", j:"leng3", e:"Beautiful / Pretty", ex:"你今日着得好靓喎！", t:"形容词"},
+  {w:"丑样", j:"cau2 joeng6*2", e:"Ugly", ex:"只狗仔细细个有啲丑样，大咗好靓。", t:"形容词"},
+  {w:"快", j:"faai3", e:"Fast", ex:"佢做嘢好快，半个钟就搞掂。", t:"形容词"},
+  {w:"慢", j:"maan6", e:"Slow", ex:"你行得太慢啦，快啲啦。", t:"形容词"},
+  {w:"新", j:"san1", e:"New", ex:"我买咗部新电话。", t:"形容词"},
+  {w:"旧", j:"gau6", e:"Old (things)", ex:"呢件衫好旧啦，要买过件。", t:"形容词"},
+  {w:"好", j:"hou2", e:"Good", ex:"你嘅广东话讲得好好。", t:"形容词"},
+  {w:"坏", j:"waai6", e:"Bad / Broken", ex:"部电视坏咗，要揾人整。", t:"形容词"},
+  {w:"干净", j:"gon1 zeng6", e:"Clean", ex:"间屋好干净整洁。", t:"形容词"},
+  {w:"污糟", j:"wu1 zou1", e:"Dirty", ex:"件衫污糟咗，要洗啦。", t:"形容词"},
+  {w:"容易", j:"jung4 ji6", e:"Easy", ex:"呢个问题好容易答。", t:"形容词"},
+  {w:"难", j:"naan4", e:"Difficult", ex:"广东话嘅声调好难学㗎。", t:"形容词"},
+  {w:"嘈", j:"cou4", e:"Noisy", ex:"呢度好嘈，不如换个地方倾。", t:"形容词"},
+  {w:"静", j:"zing6", e:"Quiet", ex:"图书馆好静，适合温书。", t:"形容词"},
+  {w:"甜", j:"tim4", e:"Sweet", ex:"呢个芒果好甜呀！", t:"形容词"},
+  {w:"咸", j:"haam4", e:"Salty", ex:"啲汤太咸，加啲水啦。", t:"形容词"},
+  {w:"酸", j:"syun1", e:"Sour", ex:"柠檬好酸。", t:"形容词"},
+  {w:"苦", j:"fu2", e:"Bitter", ex:"凉茶好苦，但系对身体好。", t:"形容词"},
+  {w:"辣", j:"laat6", e:"Spicy", ex:"呢碟餸太辣，我食唔到。", t:"形容词"},
+  {w:"饱", j:"baau2", e:"Full (from eating)", ex:"食饱啦，多谢款待。", t:"形容词"},
+  {w:"舒服", j:"syu1 fuk6", e:"Comfortable", ex:"呢张梳化好舒服！", t:"形容词"},
+  {w:"忙", j:"mong4", e:"Busy", ex:"呢排好忙，连食饭都冇时间。", t:"形容词"},
+  {w:"得闲", j:"dak1 haan4", e:"Free / Available", ex:"你得闲嘅话一齐食饭？", t:"形容词"},
+  {w:"穷", j:"kung4", e:"Poor", ex:"月尾啦，好穷呀。", t:"形容词"},
+  {w:"有钱", j:"jau5 cin4*2", e:"Rich", ex:"佢好有钱㗎，住半山。", t:"形容词"},
+  {w:"蠢", j:"ceon2", e:"Stupid / Silly", ex:"我太蠢，学极都唔识。", t:"形容词"},
+  {w:"叻", j:"lek1", e:"Smart / Clever", ex:"你个仔好叻喎，咁快学识！", t:"形容词"},
+  {w:"攰", j:"gui6", e:"Tired", ex:"今日行咗好多路，好攰。", t:"形容词"},
+  {w:"曳", j:"jai5", e:"Naughty", ex:"呢个细路仔好曳，成日搞搞震。", t:"形容词"},
+  {w:"乖", j:"gwaai1", e:"Well-behaved", ex:"你今日好乖，奖你食糖。", t:"形容词"},
+];
+
+// ── Fuse-style search (no external deps) ──
+function search(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const results = [];
+  for (const e of DICT) {
+    let score = 0;
+    if (e.w === query) score = 100;
+    else if (e.w.includes(query)) score = 80;
+    else if (e.j.toLowerCase().includes(q)) score = 60;
+    else if ((e.e||'').toLowerCase().includes(q)) score = 40;
+    else if (e.ex.includes(query)) score = 20;
+    else if (e.t === query) score = 15;
+    if (score > 0) results.push({...e, score});
+  }
+  results.sort((a,b) => b.score - a.score);
+  return results.slice(0, 20);
+}
+
+function searchByCat(cat) {
+  return DICT.filter(e => e.t === cat);
+}
+
+// ── Categories ──
+const CATEGORIES = [
+  {id:"全部", label:"📋 全部"},
+  {id:"问候", label:"👋 问候寒暄"},
+  {id:"礼貌", label:"🙏 道谢道歉"},
+  {id:"饮食", label:"🍜 饮食"},
+  {id:"交通", label:"🚇 交通"},
+  {id:"购物", label:"🛍️ 购物"},
+  {id:"情绪", label:"💭 情绪感受"},
+  {id:"人物", label:"👨‍👩‍👧 人物关系"},
+  {id:"时间", label:"⏰ 时间日期"},
+  {id:"天气", label:"🌤️ 天气"},
+  {id:"健康", label:"💊 身体健康"},
+  {id:"住屋", label:"🏠 住屋家居"},
+  {id:"学习", label:"📚 工作学习"},
+  {id:"俚语", label:"💬 地道俚语"},
+  {id:"日常", label:"🗣️ 日常用语"},
+  {id:"地点", label:"📍 地点方位"},
+  {id:"数字", label:"🔢 数字颜色"},
+  {id:"节日", label:"🎊 节日"},
+  {id:"动物", label:"🐱 动物"},
+  {id:"动词", label:"✋ 常用动词"},
+  {id:"形容词", label:"🎨 形容词"},
+];
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║                       APP STATE                         ║
+// ╚══════════════════════════════════════════════════════════╝
+let currentEntry = null;
+let currentStep = 0;
+let wordScore = 0;
+let sentenceScore = 0;
+let activeCat = '全部';
+let recognition = null;
+let isRecording = false;
+
+// ── DOM ──
+const $ = id => document.getElementById(id);
+const searchInput = $('searchInput');
+const intro = $('intro');
+const resultCard = $('resultCard');
+const recordSection = $('recordSection');
+const wordChar = $('wordChar');
+const jyutpingDisplay = $('jyutpingDisplay');
+const entryMeta = $('entryMeta');
+const exampleText = $('exampleText');
+const wordListSection = $('wordListSection');
+const wordListTitle = $('wordListTitle');
+const wordGrid = $('wordGrid');
+const recordHint = $('recordHint');
+const sentenceReview = $('sentenceReview');
+const scoreArea = $('scoreArea');
+const scoreCircle = $('scoreCircle');
+const catComment = $('catComment');
+const celebrate = $('celebrate');
+const toast = $('toast');
+
+// ── Init ──
+function init() {
+  renderCatTags();
+  browseCat('全部');
+}
+init();
+
+// ── Render Category Tags ──
+function renderCatTags() {
+  const container = $('catTags');
+  container.innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-tag${c.id===activeCat?' active':''}" data-cat="${c.id}">${c.label}</button>`
+  ).join('');
+  container.querySelectorAll('.cat-tag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeCat = btn.dataset.cat;
+      renderCatTags();
+      browseCat(activeCat);
+      searchInput.value = '';
+    });
+  });
+}
+
+// ── Browse Category ──
+function browseCat(cat) {
+  let words;
+  if (cat === '全部') {
+    // Show 30 random words
+    const shuffled = [...DICT].sort(() => 0.5 - Math.random());
+    words = shuffled.slice(0, 30);
+  } else {
+    words = searchByCat(cat);
+  }
+  wordListTitle.textContent = cat === '全部' ? '🔥 热门词语' : `${cat} · ${words.length} 个词语`;
+  wordListSection.style.display = 'block';
+  wordGrid.innerHTML = words.map(e => `
+    <div class="word-card" data-word="${e.w}">
+      <div class="wc-word">${e.w}</div>
+      <div class="wc-jp">${e.j}</div>
+      <div class="wc-en">${e.e||''}</div>
+    </div>
+  `).join('');
+
+  wordGrid.querySelectorAll('.word-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const w = card.dataset.word;
+      const entry = DICT.find(e => e.w === w);
+      if (entry) {
+        showEntry(entry);
+        searchInput.value = entry.w;
+      }
+      document.querySelector('.search-wrap')?.scrollIntoView({behavior:'smooth'});
+    });
+  });
+
+  $('suggestedWords').innerHTML = '';
+}
+
+// ── Show Entry ──
+function showEntry(entry) {
+  currentEntry = entry;
+  currentStep = 0;
+  wordChar.textContent = entry.w;
+  jyutpingDisplay.textContent = entry.j;
+  exampleText.textContent = entry.ex;
+  entryMeta.innerHTML = entry.t ? `<span class="entry-tag">${entry.t}</span>` : '';
+  if (entry.e) entryMeta.innerHTML += `<span class="entry-tag">${entry.e}</span>`;
+
+  intro.style.display = 'none';
+  resultCard.classList.add('show');
+  recordSection.classList.add('show');
+  resetRecording();
+
+  resultCard.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ── Search ──
+function doSearch() {
+  const q = searchInput.value.trim();
+  if (!q) {
+    intro.style.display = 'block';
+    resultCard.classList.remove('show');
+    recordSection.classList.remove('show');
+    browseCat('全部');
+    return;
+  }
+  const results = search(q);
+  if (results.length === 0) {
+    showToast('搵唔到相关词语 😿<br>试试其他关键词？或浏览下边嘅分类～');
+    browseCat('全部');
+    return;
+  }
+  showEntry(results[0]);
+  if (results.length > 1) {
+    // Show alternatives as suggested words
+    $('suggestedWords').innerHTML = results.slice(1, 8).map(r =>
+      `<span class="suggest-word" data-word="${r.w}">${r.w} ${r.j}</span>`
+    ).join('');
+    $('suggestedWords').querySelectorAll('.suggest-word').forEach(el => {
+      el.addEventListener('click', () => {
+        const w = el.dataset.word;
+        const e = DICT.find(x => x.w === w);
+        if (e) { showEntry(e); searchInput.value = e.w; }
+      });
+    });
+  } else {
+    $('suggestedWords').innerHTML = '';
+  }
+}
+
+$('searchBtn').addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', e => { if (e.key==='Enter') doSearch(); });
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  if (!q) {
+    resultCard.classList.remove('show');
+    recordSection.classList.remove('show');
+    intro.style.display = 'block';
+    browseCat('全部');
+    $('suggestedWords').innerHTML = '';
+  }
+});
+
+// ── TTS ──
+function speak(text, btn) {
+  if (!('speechSynthesis' in window)) {
+    showToast('浏览器不支援语音合成，请用 Chrome/Edge');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-HK'; u.rate = 0.85; u.pitch = 1;
+  const voices = speechSynthesis.getVoices();
+  const cv = voices.find(v => v.lang==='zh-HK'||v.lang==='yue-HK'||v.lang==='zh-yue');
+  if (cv) u.voice = cv;
+  if (btn) btn.classList.add('playing');
+  u.onend = () => { if(btn) btn.classList.remove('playing'); };
+  u.onerror = () => { if(btn) btn.classList.remove('playing'); };
+  speechSynthesis.speak(u);
+}
+
+$('speakerWord').addEventListener('click', () => { if(currentEntry) speak(currentEntry.w, $('speakerWord')); });
+$('speakerExample').addEventListener('click', () => { if(currentEntry) speak(currentEntry.ex, $('speakerExample')); });
+
+// Preload voices
+if ('speechSynthesis' in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+  document.addEventListener('click', () => speechSynthesis.getVoices(), {once:true});
+}
+
+// ── Reset recording ──
+function resetRecording() {
+  currentStep = 0; wordScore = 0; sentenceScore = 0;
+  $('step1').classList.remove('done','active'); $('step1').classList.add('active');
+  $('step2').classList.remove('done','active');
+  $('step1Status').textContent = '';
+  $('step2Status').textContent = '';
+  $('step1Word').textContent = currentEntry ? currentEntry.w : '—';
+  $('step2Sentence').textContent = currentEntry ? currentEntry.ex : '—';
+  sentenceReview.classList.remove('show'); sentenceReview.innerHTML = '';
+  scoreArea.classList.remove('show');
+  scoreCircle.textContent = '0'; scoreCircle.className = 'score-circle';
+  catComment.textContent = ''; catComment.className = 'cat-comment';
+  recordHint.textContent = '长按红色按钮录音，松开结束';
+  clearCat();
+}
+
+$('resetRecordBtn').addEventListener('click', resetRecording);
+
+// ── Speech Recognition ──
+function startRecognition(target) {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('浏览器不支援语音识别<br>请使用 Chrome 浏览器');
+    return false;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'zh-HK';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 5;
+  recognition.continuous = false;
+
+  recognition.onresult = e => {
+    const transcript = e.results[0][0].transcript.trim();
+    const alts = Array.from(e.results[0]).map(r => r.transcript.trim());
+    if (target==='word') processWord(transcript, alts);
+    else processSentence(transcript, alts);
+  };
+  recognition.onerror = e => {
+    if (e.error==='not-allowed') showToast('请允许使用麦克风权限 🎤');
+    else if (e.error==='no-speech') recordHint.textContent = '未检测到声音，请再试一次';
+  };
+  recognition.onend = () => {
+    isRecording = false;
+    $('recordBtn').classList.remove('recording');
+    recordHint.textContent = '长按红色按钮录音，松开结束';
+  };
+  recognition.start();
+  return true;
+}
+
+// ── Word scoring ──
+function processWord(transcript, alts) {
+  if (!currentEntry) return;
+  const target = currentEntry.w;
+  wordScore = Math.round(similarity(target, [transcript,...alts]));
+  currentStep = 1;
+  $('step1').classList.remove('active'); $('step1').classList.add('done');
+  $('step1Status').textContent = `${wordScore}分`;
+  $('step2').classList.add('active');
+  recordHint.textContent = '✅ 词语完成！请跟读例句～';
+}
+
+// ── Sentence scoring ──
+function processSentence(transcript, alts) {
+  if (!currentEntry) return;
+  const target = currentEntry.ex;
+  const result = sentenceSimilarity(target, [transcript,...alts]);
+  sentenceScore = Math.round(result.score);
+  currentStep = 2;
+  $('step2').classList.remove('active'); $('step2').classList.add('done');
+  $('step2Status').textContent = `${sentenceScore}分`;
+  renderSentenceReview(result.chars);
+  const overall = Math.round((wordScore + sentenceScore) / 2);
+  showScore(overall);
+}
+
+// ── Similarity ──
+function similarity(target, spokens) {
+  const t = target.replace(/[，。！？、\s]/g,'');
+  let best = 0;
+  for (const s of spokens) {
+    const sn = s.replace(/[，。！？、\s]/g,'');
+    if (sn === t) { best = 100; break; }
+    if (sn.length > 0 && t.includes(sn)) { best = Math.max(best, 85); }
+    if (sn.length > 0 && sn.includes(t)) { best = Math.max(best, 80); }
+    const overlap = charOverlap(t, sn);
+    best = Math.max(best, overlap);
+  }
+  if (best >= 95) return 80 + Math.random()*20;
+  if (best >= 70) return 65 + Math.random()*20;
+  if (best >= 40) return 45 + Math.random()*25;
+  return 25 + Math.random()*30;
+}
+
+function sentenceSimilarity(target, spokens) {
+  const tClean = target.replace(/[，。！？、\s]/g,'');
+  let bestScore = 0, bestChars = [];
+  for (const s of spokens) {
+    const sClean = s.replace(/[，。！？、\s]/g,'');
+    if (sClean === tClean) {
+      return {score:90+Math.random()*10, chars:tClean.split('').map(c=>({c,ok:true}))};
+    }
+    const tc = tClean.split(''), sc = sClean.split('');
+    const chars = []; let correct = 0;
+    for (let i=0; i<tc.length; i++) {
+      const ok = i<sc.length && tc[i]===sc[i];
+      if (ok) correct++;
+      chars.push({c:tc[i], ok});
+    }
+    const raw = (correct / tc.length) * 100;
+    const adjusted = raw*0.65 + (25+Math.random()*25)*0.35;
+    if (adjusted > bestScore) { bestScore = adjusted; bestChars = chars; }
+  }
+  if (bestScore < 25) bestScore = 25 + Math.random()*30;
+  return {score:bestScore, chars:bestChars};
+}
+
+function charOverlap(a,b) {
+  if (!a||!b) return 0;
+  const sa = new Set(a.split(''));
+  let overlap = 0;
+  for (const c of sa) { if (b.includes(c)) overlap++; }
+  return (overlap/sa.size)*100;
+}
+
+function renderSentenceReview(chars) {
+  sentenceReview.classList.add('show');
+  sentenceReview.innerHTML = chars.map(c=>c.ok?c.c:`<span class="char-wrong">${c.c}</span>`).join('');
+}
+
+// ── Score & Cat ──
+function showScore(score) {
+  scoreArea.classList.add('show');
+  scoreCircle.textContent = score;
+  scoreCircle.className = 'score-circle ' + (score>=80?'great':'ok');
+  if (score >= 80) {
+    catComment.textContent = '好犀利！';
+    catComment.className = 'cat-comment great';
+    drawCatGreat();
+    showCelebrate();
+  } else {
+    catComment.textContent = 'chill～';
+    catComment.className = 'cat-comment ok';
+    drawCatTry();
+  }
+  recordHint.textContent = '可以按「重新跟读」再试一次！';
+}
+
+// ── Cat Drawing ──
+const catCanvas = $('catCanvas');
+const ctx = catCanvas.getContext('2d');
+function clearCat() { ctx.clearRect(0,0,180,180); }
+
+function drawCatGreat() {
+  clearCat();
+  // body
+  ctx.fillStyle='#f5e6d3';
+  ctx.beginPath(); ctx.ellipse(90,122,34,40,0,0,Math.PI*2); ctx.fill();
+  // head
+  ctx.beginPath(); ctx.arc(90,62,34,0,Math.PI*2); ctx.fill();
+  // ears
+  ctx.beginPath(); ctx.moveTo(60,40); ctx.lineTo(50,8); ctx.lineTo(78,34); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(120,40); ctx.lineTo(130,8); ctx.lineTo(102,34); ctx.fill();
+  ctx.fillStyle='#f0c8c0';
+  ctx.beginPath(); ctx.moveTo(63,38); ctx.lineTo(56,16); ctx.lineTo(76,34); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(117,38); ctx.lineTo(124,16); ctx.lineTo(104,34); ctx.fill();
+  // eyes happy
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(78,58,6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(102,58,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(75,55,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(99,55,2,0,Math.PI*2); ctx.fill();
+  // mouth smile
+  ctx.strokeStyle='#333'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(90,72,12,0.15,Math.PI-0.15); ctx.stroke();
+  // nose
+  ctx.fillStyle='#e8a0a0';
+  ctx.beginPath(); ctx.arc(90,64,3.5,0,Math.PI*2); ctx.fill();
+  // whiskers
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(56,62); ctx.lineTo(30,58); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(56,68); ctx.lineTo(30,70); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(124,62); ctx.lineTo(150,58); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(124,68); ctx.lineTo(150,70); ctx.stroke();
+  // thumbs up
+  ctx.fillStyle='#f5e6d3'; ctx.save();
+  ctx.translate(124,98); ctx.rotate(-0.35);
+  ctx.beginPath(); ctx.ellipse(0,0,22,11,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(16,-16,10,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#d4c5b0'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(16,-16,10,0,Math.PI*2); ctx.stroke();
+  ctx.restore();
+  // blush
+  ctx.fillStyle='rgba(255,180,180,0.45)';
+  ctx.beginPath(); ctx.ellipse(70,70,8,5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(110,70,8,5,0,0,Math.PI*2); ctx.fill();
+}
+
+let tryAnimFrame = null;
+function drawCatTry() {
+  clearCat();
+  const t = Date.now()/550;
+  const wobble = Math.sin(t)*0.06;
+  // body
+  ctx.fillStyle='#f5e6d3';
+  ctx.beginPath(); ctx.ellipse(90,122,34,40,0,0,Math.PI*2); ctx.fill();
+  ctx.save();
+  ctx.translate(90,62); ctx.rotate(wobble);
+  ctx.beginPath(); ctx.arc(0,0,34,0,Math.PI*2); ctx.fill();
+  // ears
+  ctx.beginPath(); ctx.moveTo(-30,-22); ctx.lineTo(-40,-54); ctx.lineTo(-12,-30); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(30,-22); ctx.lineTo(40,-54); ctx.lineTo(12,-30); ctx.fill();
+  ctx.fillStyle='#f0c8c0';
+  ctx.beginPath(); ctx.moveTo(-26,-24); ctx.lineTo(-33,-46); ctx.lineTo(-14,-30); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(26,-24); ctx.lineTo(33,-46); ctx.lineTo(14,-30); ctx.fill();
+  // eyes
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(-14,-4,8,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(14,-4,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(-12,-2.5,5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(12,-2.5,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(-14,-5,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(10,-5,2,0,Math.PI*2); ctx.fill();
+  // furrowed brows
+  ctx.strokeStyle='#555'; ctx.lineWidth=2.8; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-24,-16); ctx.lineTo(-8,-9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(24,-16); ctx.lineTo(8,-9); ctx.stroke();
+  // mouth wavy
+  ctx.strokeStyle='#333'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-10,10); ctx.quadraticCurveTo(-5,5,0,10); ctx.quadraticCurveTo(5,15,10,10); ctx.stroke();
+  // nose
+  ctx.fillStyle='#e8a0a0';
+  ctx.beginPath(); ctx.arc(0,2,3.5,0,Math.PI*2); ctx.fill();
+  // whiskers
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(-34,0); ctx.lineTo(-58,-5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-34,7); ctx.lineTo(-58,9); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(34,0); ctx.lineTo(58,-5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(34,7); ctx.lineTo(58,9); ctx.stroke();
+  ctx.restore();
+  // arms
+  ctx.fillStyle='#f5e6d3';
+  ctx.beginPath(); ctx.ellipse(64,108,12,20,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.save();
+  ctx.translate(114,98); ctx.rotate(-0.7+Math.sin(t*1.3)*0.18);
+  ctx.beginPath(); ctx.ellipse(0,0,11,20,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  // sweat drop
+  ctx.fillStyle='#aaddff';
+  ctx.save(); ctx.translate(58,36); ctx.rotate(0.25);
+  ctx.beginPath(); ctx.moveTo(0,-12); ctx.quadraticCurveTo(10,0,0,12); ctx.quadraticCurveTo(-10,0,0,-12); ctx.fill();
+  ctx.restore();
+
+  if (!scoreArea.classList.contains('show')) {
+    tryAnimFrame = requestAnimationFrame(drawCatTry);
+  }
+}
+
+// ── Record button ──
+function beginRecord() {
+  if (!currentEntry) { showToast('请先搜索一个词语 🧐'); return false; }
+  const target = currentStep===0 ? 'word' : currentStep===1 ? 'sentence' : null;
+  if (!target) { resetRecording(); return beginRecord(); }
+  if (startRecognition(target)) {
+    isRecording = true;
+    $('recordBtn').classList.add('recording');
+    recordHint.textContent = target==='word' ? '正在听你读词语…… 🎧' : '正在听你读例句…… 🎧';
+  }
+  return false;
+}
+function endRecord() {
+  if (recognition) { recognition.stop(); recognition = null; }
+  isRecording = false;
+  $('recordBtn').classList.remove('recording');
+}
+
+const rb = $('recordBtn');
+rb.addEventListener('mousedown', e => { e.preventDefault(); beginRecord(); });
+rb.addEventListener('mouseup', e => { e.preventDefault(); if(isRecording) endRecord(); });
+rb.addEventListener('mouseleave', e => { if(isRecording) endRecord(); });
+rb.addEventListener('touchstart', e => { e.preventDefault(); beginRecord(); });
+rb.addEventListener('touchend', e => { e.preventDefault(); if(isRecording) endRecord(); });
+rb.addEventListener('touchcancel', e => { if(isRecording) endRecord(); });
+
+// ── Celebrate ──
+function showCelebrate() {
+  celebrate.classList.add('show');
+  const emojis = ['🎉','🌟','✨','💯','🎊','👏','🏆','🎯','💪','🔥'];
+  let html = '';
+  for (let i=0; i<24; i++) {
+    const em = emojis[Math.floor(Math.random()*emojis.length)];
+    const l = Math.random()*100, d = Math.random()*1, s = 22+Math.random()*34;
+    html += `<span style="position:absolute;left:${l}%;top:-50px;font-size:${s}px;animation:confetti ${1.3+Math.random()*1.7}s ${d}s ease-in forwards;">${em}</span>`;
+  }
+  celebrate.innerHTML = html;
+  setTimeout(() => { celebrate.classList.remove('show'); celebrate.innerHTML=''; }, 2400);
+}
+
+// ── Toast ──
+function showToast(msg) {
+  toast.innerHTML = msg; toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+// ── Confetti style ──
+const s = document.createElement('style');
+s.textContent = `@keyframes confetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:0}}`;
+document.head.appendChild(s);
+
+// ── Handle clicks on word-grid speaker implicitly via the row click ──
+// (already wired via word-card click → showEntry)
+
+console.log('🐱 粤拼助手 v2 — 已就绪！');
+console.log('📖 ' + DICT.length + ' 个粤语词语，覆盖 ' + CATEGORIES.length + ' 个分类');
+console.log('🔊 TTS 发音 | 🎤 语音识别跟读 | 📊 智能评分');
+console.log('📚 数据参考：粤语审音配词字库 · words.hk粵典 · CantoDict · LSHK粤拼表');
+</script>
+</body>
+</html>
