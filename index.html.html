@@ -1227,55 +1227,33 @@ searchInput.addEventListener('input', () => {
 
 // ── TTS ──
 function speak(text, btn) {
- // ============================================================
-  // 方案1: 优先使用 Google 翻译 TTS（在线，100% 粤语）
-  // ============================================================
-  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=yue&client=tw-ob`;
-  
-  const audio = new Audio(url);
-  
-  // 播放成功 → 用 Google 粤语
-  audio.play().then(() => {
-    if (btn) btn.classList.add('playing');
-    audio.onended = () => { 
-      if (btn) btn.classList.remove('playing'); 
-    };
-    audio.onerror = () => {
-      // Google TTS 失败 → 降级到系统语音
-      if (btn) btn.classList.remove('playing');
-      fallbackSpeak(text, btn);
-    };
-  }).catch(() => {
-    // 网络问题 → 降级到系统语音
-    fallbackSpeak(text, btn);
-  });
-}
-
-// ============================================================
-// 方案2: 降级方案 - 系统语音（备用）
-// ============================================================
-function fallbackSpeak(text, btn) {
-  if (!('speechSynthesis' in window)) {
-    showToast('浏览器不支援语音合成，请用 Chrome/Edge');
+ if (!('speechSynthesis' in window)) {
+    // 如果浏览器不支持语音，用 Google TTS 作为终极方案
+    googleTTS(text, btn);
     return;
   }
   
+  // 先取消之前的语音
   window.speechSynthesis.cancel();
   
   // 获取语音列表
   let voices = speechSynthesis.getVoices();
   
   if (voices.length === 0) {
+    // 语音列表还没加载，等待加载完成
     speechSynthesis.onvoiceschanged = function() {
       voices = speechSynthesis.getVoices();
-      doFallbackSpeak(text, btn, voices);
+      trySystemSpeak(text, btn, voices);
     };
   } else {
-    doFallbackSpeak(text, btn, voices);
+    trySystemSpeak(text, btn, voices);
   }
 }
 
-function doFallbackSpeak(text, btn, voices) {
+// ============================================================
+// 优先使用系统粤语语音
+// ============================================================
+function trySystemSpeak(text, btn, voices) {
   // 优先找粤语声音
   let cantoVoice = voices.find(v => 
     v.lang === 'zh-HK' || 
@@ -1286,26 +1264,86 @@ function doFallbackSpeak(text, btn, voices) {
     (v.lang.startsWith('zh') && v.lang.includes('HK'))
   );
   
-  if (!cantoVoice) {
-    cantoVoice = voices.find(v => v.lang.startsWith('zh'));
-  }
-  
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'zh-HK';
-  u.rate = 0.8;
-  u.pitch = 1.0;
-  
   if (cantoVoice) {
+    // ✅ 找到粤语语音 → 用系统语音
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-HK';
+    u.rate = 0.8;
+    u.pitch = 1.0;
     u.voice = cantoVoice;
-    console.log('✅ 使用系统语音:', cantoVoice.name, cantoVoice.lang);
+    
+    if (btn) btn.classList.add('playing');
+    u.onend = () => { if (btn) btn.classList.remove('playing'); };
+    u.onerror = () => { 
+      if (btn) btn.classList.remove('playing');
+      // 系统语音失败 → 降级到 Google TTS
+      googleTTS(text, btn);
+    };
+    window.speechSynthesis.speak(u);
+    console.log('✅ 使用系统粤语语音:', cantoVoice.name);
   } else {
-    console.warn('⚠️ 未找到粤语语音，使用系统默认');
+    // ❌ 没有粤语语音 → 用 Google TTS
+    console.warn('⚠️ 未找到粤语语音，使用 Google TTS');
+    googleTTS(text, btn);
   }
+}
+
+// ============================================================
+// 备用方案：Google TTS（在线粤语）
+// ============================================================
+function googleTTS(text, btn) {
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=yue&client=tw-ob`;
+  
+  const audio = new Audio(url);
+  
+  // 设置超时，如果 5 秒没加载完成就放弃
+  const timeout = setTimeout(() => {
+    audio.src = ''; // 停止加载
+    if (btn) btn.classList.remove('playing');
+    showToast('⚠️ 语音加载超时，请检查网络');
+  }, 5000);
+  
+  audio.play().then(() => {
+    clearTimeout(timeout);
+    if (btn) btn.classList.add('playing');
+    audio.onended = () => { 
+      if (btn) btn.classList.remove('playing'); 
+    };
+    audio.onerror = () => {
+      clearTimeout(timeout);
+      if (btn) btn.classList.remove('playing');
+      showToast('⚠️ 语音播放失败');
+    };
+  }).catch((err) => {
+    clearTimeout(timeout);
+    if (btn) btn.classList.remove('playing');
+    console.warn('Google TTS 失败:', err);
+    // 终极方案：尝试用系统语音（不指定粤语，用默认）
+    ultimateFallback(text, btn);
+  });
+}
+
+// ============================================================
+// 终极方案：系统默认语音（不指定粤语，至少能出声）
+// ============================================================
+function ultimateFallback(text, btn) {
+  if (!('speechSynthesis' in window)) {
+    showToast('⚠️ 您的浏览器不支持语音功能');
+    return;
+  }
+  
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.9;
+  u.pitch = 1.0;
+  // 不指定 lang，让系统用默认语音（可能是普通话，但至少有声音）
   
   if (btn) btn.classList.add('playing');
   u.onend = () => { if (btn) btn.classList.remove('playing'); };
-  u.onerror = () => { if (btn) btn.classList.remove('playing'); };
-  
+  u.onerror = () => { 
+    if (btn) btn.classList.remove('playing');
+    showToast('⚠️ 语音播放失败，请检查设备设置');
+  };
   window.speechSynthesis.speak(u);
 }
 
